@@ -2,8 +2,6 @@ import openai
 import whisper
 import os
 from gtts import gTTS
-import sounddevice as sd
-from scipy.io.wavfile import write
 import tempfile
 import streamlit as st
 from openai import OpenAI
@@ -18,23 +16,14 @@ def load_whisper_model():
 
 model = load_whisper_model()
 
-# Speak text aloud
+# Speak text aloud (only works on desktop with speakers)
 def speak(text):
     tts = gTTS(text)
     filename = "response.mp3"
     tts.save(filename)
-    os.system(f"start {filename}")  # Use "afplay" on MacOS, "xdg-open" on Linux
+    st.audio(filename)
 
-# Record audio from microphone
-def record_audio(duration=5, fs=44100):
-    st.info("Recording for 5 seconds. Speak now...")
-    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
-    sd.wait()
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-    write(temp_file.name, fs, audio)
-    return temp_file.name
-
-# Transcribe audio to text
+# Transcribe uploaded audio
 def transcribe(file):
     result = model.transcribe(file)
     return result['text']
@@ -57,11 +46,11 @@ def generate_quiz(topic):
 
 # Streamlit UI
 st.title("🎓 YASHWANTH Mentor")
-st.markdown("Speak your doubts or ask for a test.")
+st.markdown("Upload your voice (WAV/MP3) and ask a doubt or request a quiz.")
 
-if st.button("🎤 Ask Mentor"):
-    audio_file = record_audio()
-    question = transcribe(audio_file)
+uploaded_file = st.file_uploader("🎤 Upload your voice (WAV/MP3)", type=["wav", "mp3"])
+if uploaded_file is not None:
+    question = transcribe(uploaded_file)
     st.success(f"Student asked: **{question}**")
 
     if "test me" in question.lower():
